@@ -1,0 +1,11 @@
+{
+  "name": "macaron",
+  "description": "KAIST CS496 Final Project - Macaron.io",
+  "scripts": {
+    "build": "gulp build",
+    "start": "gulp run",
+    "watch": "gulp watch",
+    "test": "gulp test"
+  },
+  "repository": "https://github.com/alphahoon/macaron.io"
+}
