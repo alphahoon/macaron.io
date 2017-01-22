@@ -1,5 +1,6 @@
 <!doctype html>
-<html lang="en">
+<html lang="ko">
+
 <head>
     <!-- Meta Properties -->
     <meta charset="UTF-8">
@@ -7,21 +8,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
     <!-- CSS -->
     <link rel="stylesheet" href="css/main.css" />
-    <link rel="stylesheet" href="css/macaron.css" />
-    <!-- Audio -->
 </head>
+
 <body>
-    <div>
+    <div id="gameAreaWrapper">
+        <div id="status"><span class="title">점수판</span></div>
+        <canvas tabindex="1" id="cvs"></canvas>
     </div>
-
-
-
-
-
-
-    
+    <div id="startMenuWrapper">
+        <div id="startMenu">
+            <p>Macaron.io</p>
+            <input type="text" tabindex="0" autofocus placeholder="Enter your name here" id="playerNameInput" maxlength="25" />
+            <b class="input-error">닉넴제대로!</b>
+            <br />
+            <a onclick="document.getElementById('spawn_cell').play();"><button id="startButton">플레이</button></a>
+            <br />
+            <div id="instructions">
+                <h3>게임플레이</h3>
+                <ul>
+                    <li>마카롱은 위험해!!</li>
+                </ul>
+            </div>
+        </div>
+    </div>
     <!-- JS -->
     <script src="//code.jquery.com/jquery-2.2.0.min.js"></script>
     <script src="js/app.js"></script>
 </body>
+
 </html>
