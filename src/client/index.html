@@ -8,29 +8,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
     <!-- CSS -->
     <link rel="stylesheet" href="css/main.css" />
+     <link rel="stylesheet" href="css/macaron.css" />
 </head>
 
 <body>
+  
     <div id="gameAreaWrapper">
         <div id="status"><span class="title">점수판</span></div>
         <canvas tabindex="1" id="cvs"></canvas>
     </div>
+
+ 
+
     <div id="startMenuWrapper">
+        <div class="yumyum">
+            <div class="macaron">
+                <span class="cover"></span> 
+                <span class="oval top"></span>
+                <span class="oval cream"></span>
+                <span class="oval bottom"></span>
+            </div>
+            
+            </div>
         <div id="startMenu">
-            <p>Macaron.io</p>
-            <input type="text" tabindex="0" autofocus placeholder="Enter your name here" id="playerNameInput" maxlength="25" />
-            <b class="input-error">닉넴제대로!</b>
+           
+            <img style="margin:0px auto;display:block" src = "title.PNG"  width:"100">
+            <br/>
+            <br/>
+            <input type="text" tabindex="0" autofocus placeholder="닉네임을 입력해주세요 ʕ·ᴥ·ʔ" id="playerNameInput" maxlength="25" />
+            <b class="input-error">특수문자는 사용할 수 없어요!! 다시 입력해주세요 ʕ◔ᴥ◔ʔ</b>
             <br />
-            <a onclick="document.getElementById('spawn_cell').play();"><button id="startButton">플레이</button></a>
+          
+            <a onclick="document.getElementById('spawn_cell').play();"><button id="startButton">PLAY</button></a>
             <br />
             <div id="instructions">
-                <h3>게임플레이</h3>
+                <h3 align="middle">게임하는 방법</h3>
                 <ul>
-                    <li>마카롱은 위험해!!</li>
+                    <li>마카롱을 먹으면서 몸집을 키우세요!</li>
+                    <li>너무 많은 마카롱을 먹으면 몸이 터져요!</li>
+                    <li>자신보다 몸집이 큰 player에게 잡아먹힐 수도 있어요!</li>
+                    <li>체중조절하면서 오래 살아남으세요!</li>
                 </ul>
             </div>
         </div>
-    </div>
+        
+</div>
     <!-- JS -->
     <script src="//code.jquery.com/jquery-2.2.0.min.js"></script>
     <script src="js/app.js"></script>

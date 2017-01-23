@@ -1,17 +1,19 @@
 
-
-
-
 /*place it in the center*/
 body{
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100%;
-  oveflow: hidden;
+  overflow: hidden;
 }
 div {
     position: relative;
+}
+
+.yumyum{
+  display:flex;
+  margin-bottom:-150px;
 }
 /* deals with macaron */
 .macaron{
@@ -19,7 +21,7 @@ div {
   padding: 10px;
   margin: 0 auto;
   -webkit-animation: beat 0.5s infinite none;
-			 animation: beat 3s infinite none;
+			 animation: beat 2s infinite none;
 }
 
 @-webkit-keyframes beat{
