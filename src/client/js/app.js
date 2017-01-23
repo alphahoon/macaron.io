@@ -32,6 +32,7 @@ function startGame(type) {
     socket.emit('respawn');
     window.canvas.socket = socket;
     global.socket = socket;
+    debug('Game Start!');
 }
 
 // Checks if the nick chosen contains valid alphanumeric characters (and underscores).
@@ -73,7 +74,7 @@ window.onload = function() {
 
 // TODO: Break out into GameControls.
 
-var foodConfig = {
+var macaronConfig = {
     border: 0,
 };
 
@@ -95,8 +96,8 @@ var player = {
 };
 global.player = player;
 
-var foods = [];
-var fireFood = [];
+var macarons = [];
+var firedMacaron = [];
 var users = [];
 var leaderboard = [];
 var target = { x: player.x, y: player.y };
@@ -113,11 +114,13 @@ function setupSocket(socket) {
     socket.on('connect_failed', function() {
         socket.close();
         global.disconnected = true;
+        debug('Connect Failed!');
     });
 
     socket.on('disconnect', function() {
         socket.close();
         global.disconnected = true;
+        debug('Disconnected!');
     });
 
     // Handle connection.
@@ -128,6 +131,8 @@ function setupSocket(socket) {
         player.screenHeight = global.screenHeight;
         player.target = window.canvas.target;
         global.player = player;
+        console.log('WELCOME: global.player');
+        console.log(global.player);
         socket.emit('gotit', player);
         global.gameStart = true;
         debug('Game started at: ' + global.gameStart);
@@ -138,6 +143,7 @@ function setupSocket(socket) {
         global.gameWidth = data.gameWidth;
         global.gameHeight = data.gameHeight;
         resize();
+        debug('Game Setup');
     });
 
     socket.on('leaderboard', function(data) {
@@ -162,12 +168,13 @@ function setupSocket(socket) {
     });
 
     // Handle movement.
-    socket.on('serverTellPlayerMove', function(userData, foodsList, massList) {
+    socket.on('serverTellPlayerMove', function(visiblePlayer, visibleMacaron, visibleBullet) {
+
         var playerData;
-        for (var i = 0; i < userData.length; i++) {
-            if (typeof(userData[i].id) == "undefined") {
-                playerData = userData[i];
-                i = userData.length;
+        for (var i = 0; i < visiblePlayer.length; i++) {
+            if (typeof(visiblePlayer[i].id) == "undefined") {
+                playerData = visiblePlayer[i];
+                i = visiblePlayer.length;
             }
         }
         if (global.playerType == 'player') {
@@ -177,14 +184,14 @@ function setupSocket(socket) {
             player.x = playerData.x;
             player.y = playerData.y;
             player.hue = playerData.hue;
-            player.massTotal = playerData.massTotal;
-            player.cells = playerData.cells;
+            player.mass = playerData.mass;
             player.xoffset = isNaN(xoffset) ? 0 : xoffset;
             player.yoffset = isNaN(yoffset) ? 0 : yoffset;
         }
-        users = userData;
-        foods = foodsList;
-        fireFood = massList;
+
+        users = visiblePlayer;
+        macarons = visibleMacaron;
+        firedMacaron = visibleBullet;
     });
 
     // Death.
@@ -222,16 +229,16 @@ function drawCircle(centerX, centerY, radius, sides) {
     graph.fill();
 }
 
-function drawFood(food) {
-    graph.strokeStyle = 'hsl(' + food.hue + ', 100%, 45%)';
-    graph.fillStyle = 'hsl(' + food.hue + ', 100%, 50%)';
-    graph.lineWidth = foodConfig.border;
-    drawCircle(food.x - player.x + global.screenWidth / 2,
-        food.y - player.y + global.screenHeight / 2,
-        food.radius, global.foodSides);
+function drawMacaron(macaron) {
+    graph.strokeStyle = 'hsl(' + macaron.hue + ', 100%, 45%)';
+    graph.fillStyle = 'hsl(' + macaron.hue + ', 100%, 50%)';
+    graph.lineWidth = macaronConfig.border;
+    drawCircle(macaron.x - player.x + global.screenWidth / 2,
+        macaron.y - player.y + global.screenHeight / 2,
+        macaron.radius, global.macaronSides);
 }
 
-function drawFireFood(mass) {
+function drawBullet(mass) {
     graph.strokeStyle = 'hsl(' + mass.hue + ', 100%, 45%)';
     graph.fillStyle = 'hsl(' + mass.hue + ', 100%, 50%)';
     graph.lineWidth = playerConfig.border + 10;
@@ -247,71 +254,31 @@ function drawPlayers(order) {
     };
 
     for (var z = 0; z < order.length; z++) {
-        var userCurrent = users[order[z].nCell];
-        var cellCurrent = users[order[z].nCell].cells[order[z].nDiv];
+        var currentPlayer = users[order[z].num];
+        console.log(currentPlayer);
 
-        var x = 0;
-        var y = 0;
-
-        var points = 30 + ~~(cellCurrent.mass / 5);
+        var x = 0,
+            y = 0;
+        var points = 30 + ~~(currentPlayer.mass / 10);
         var increase = Math.PI * 2 / points;
-
-        graph.strokeStyle = 'hsl(' + userCurrent.hue + ', 100%, 45%)';
-        graph.fillStyle = 'hsl(' + userCurrent.hue + ', 100%, 50%)';
-        graph.lineWidth = playerConfig.border;
-
-        var xstore = [];
-        var ystore = [];
-
-        global.spin += 0.0;
-
         var circle = {
-            x: cellCurrent.x - start.x,
-            y: cellCurrent.y - start.y
+            x: currentPlayer.x - start.x,
+            y: currentPlayer.y - start.y
         };
 
-        for (var i = 0; i < points; i++) {
+        graph.strokeStyle = 'hsl(' + currentPlayer.hue + ', 100%, 45%)';
+        graph.fillStyle = 'hsl(' + currentPlayer.hue + ', 100%, 50%)';
+        graph.lineWidth = playerConfig.border;
+        drawCircle(circle.x, circle.y, currentPlayer.radius, points);
 
-            x = cellCurrent.radius * Math.cos(global.spin) + circle.x;
-            y = cellCurrent.radius * Math.sin(global.spin) + circle.y;
-            if (typeof(userCurrent.id) == "undefined") {
-                x = valueInRange(-userCurrent.x + global.screenWidth / 2,
-                    global.gameWidth - userCurrent.x + global.screenWidth / 2, x);
-                y = valueInRange(-userCurrent.y + global.screenHeight / 2,
-                    global.gameHeight - userCurrent.y + global.screenHeight / 2, y);
-            } else {
-                x = valueInRange(-cellCurrent.x - player.x + global.screenWidth / 2 + (cellCurrent.radius / 3),
-                    global.gameWidth - cellCurrent.x + global.gameWidth - player.x + global.screenWidth / 2 - (cellCurrent.radius / 3), x);
-                y = valueInRange(-cellCurrent.y - player.y + global.screenHeight / 2 + (cellCurrent.radius / 3),
-                    global.gameHeight - cellCurrent.y + global.gameHeight - player.y + global.screenHeight / 2 - (cellCurrent.radius / 3), y);
-            }
-            global.spin += increase;
-            xstore[i] = x;
-            ystore[i] = y;
-        }
-        for (i = 0; i < points; ++i) {
-            if (i === 0) {
-                graph.beginPath();
-                graph.moveTo(xstore[i], ystore[i]);
-            } else if (i > 0 && i < points - 1) {
-                graph.lineTo(xstore[i], ystore[i]);
-            } else {
-                graph.lineTo(xstore[i], ystore[i]);
-                graph.lineTo(xstore[0], ystore[0]);
-            }
-
-        }
-        graph.lineJoin = 'round';
-        graph.lineCap = 'round';
-        graph.fill();
-        graph.stroke();
-        var nameCell = "";
-        if (typeof(userCurrent.id) == "undefined")
-            nameCell = player.name;
+        var playerName = "";
+        if (typeof(currentPlayer.id) == "undefined")
+            playerName = player.name;
         else
-            nameCell = userCurrent.name;
+            playerName = currentPlayer.name;
 
-        var fontSize = Math.max(cellCurrent.radius / 3, 12);
+        var fontSize = Math.max(currentPlayer.radius / 3, 12);
+
         graph.lineWidth = playerConfig.textBorderSize;
         graph.fillStyle = playerConfig.textColor;
         graph.strokeStyle = playerConfig.textBorder;
@@ -321,17 +288,13 @@ function drawPlayers(order) {
         graph.textBaseline = 'middle';
         graph.font = 'bold ' + fontSize + 'px sans-serif';
 
-        if (global.toggleMassState === 0) {
-            graph.strokeText(nameCell, circle.x, circle.y);
-            graph.fillText(nameCell, circle.x, circle.y);
-        } else {
-            graph.strokeText(nameCell, circle.x, circle.y);
-            graph.fillText(nameCell, circle.x, circle.y);
-            graph.font = 'bold ' + Math.max(fontSize / 3 * 2, 10) + 'px sans-serif';
-            if (nameCell.length === 0) fontSize = 0;
-            graph.strokeText(Math.round(cellCurrent.mass), circle.x, circle.y + fontSize);
-            graph.fillText(Math.round(cellCurrent.mass), circle.x, circle.y + fontSize);
-        }
+        graph.strokeText(playerName, circle.x, circle.y);
+        graph.fillText(playerName, circle.x, circle.y);
+        graph.font = 'bold ' + Math.max(fontSize / 3 * 2, 10) + 'px sans-serif';
+
+        if (playerName.length === 0) fontSize = 0;
+        graph.strokeText(Math.round(currentPlayer.mass), circle.x, circle.y + fontSize);
+        graph.fillText(Math.round(currentPlayer.mass), circle.x, circle.y + fontSize);
     }
 }
 
@@ -390,7 +353,7 @@ window.requestAnimFrame = (function() {
         window.mozRequestAnimationFrame ||
         window.msRequestAnimationFrame ||
         function(callback) {
-            window.setTimeout(callback, 1000 / 120);
+            window.setTimeout(callback, 1000 / 75);
         };
 })();
 
@@ -418,26 +381,25 @@ function gameLoop() {
             graph.fillStyle = global.backgroundColor;
             graph.fillRect(0, 0, global.screenWidth, global.screenHeight);
 
-            foods.forEach(drawFood);
-            fireFood.forEach(drawFireFood);
+            macarons.forEach(drawMacaron);
+            firedMacaron.forEach(drawMacaron);
 
             if (global.borderDraw) {
                 drawborder();
             }
+
             var orderMass = [];
             for (var i = 0; i < users.length; i++) {
-                for (var j = 0; j < users[i].cells.length; j++) {
-                    orderMass.push({
-                        nCell: i,
-                        nDiv: j,
-                        mass: users[i].cells[j].mass
-                    });
-                }
+                orderMass.push({
+                    num: i,
+                    mass: users[i].mass
+                });
             }
             orderMass.sort(function(obj1, obj2) {
                 return obj1.mass - obj2.mass;
             });
 
+            console.log(orderMass);
             drawPlayers(orderMass);
             socket.emit('move', window.canvas.target);
         } else {

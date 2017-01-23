@@ -1,6 +1,14 @@
 {
     "port": 3000,
-    "gameWidth": 5000,
-    "gameHeight": 5000,
-    "adminPass": "DEFAULT"
+    "macaronMass": 20,
+    "defaultPlayerMass": 20,
+    "defaultPlayerSpeed": 10,
+    "defaultBulletMass": 20,
+    "defaultBulletSpeed": 30,
+    "gameWidth": 3000,
+    "gameHeight": 3000,
+    "gameMass": 20000,
+    "adminPass": "DEFAULT",
+    "maxMacaron": 100,
+    "slowBase": 4.5
 }
