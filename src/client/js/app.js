@@ -483,8 +483,8 @@ window.addEventListener('resize', resize);
 
 function resize() {
     if (!socket) return;
-    player.screenWidth = c.width = global.screenWidth; //= window.innerWidth;
-    player.screenHeight = c.height = global.screenHeight; //= window.innerHeight;
+    player.screenWidth = c.width = global.screenWidth; // = window.innerWidth;
+    player.screenHeight = c.height = global.screenHeight; // = window.innerHeight;
     socket.emit('windowResized', { screenWidth: global.screenWidth, screenHeight: global.screenHeight });
     console.log("RESIZE!!!!");
 }
