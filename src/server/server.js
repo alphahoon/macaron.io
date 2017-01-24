@@ -406,6 +406,8 @@ function tickPlayer(currentPlayer) {
     var playerEaten = users.map(funcEat)
         .reduce(function(a, b, c) { return b ? a.concat(c) : a; }, []);
 
+    var playerEatenMass = 0;
+
     for (var z = 0; z < playerEaten.length; z++) {
         if (!users[playerEaten[z]].died) {
             playerEatenMass += users[playerEaten[z]].mass;
