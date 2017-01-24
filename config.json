@@ -1,14 +1,24 @@
 {
     "port": 3000,
     "macaronMass": 20,
-    "defaultPlayerMass": 20,
-    "defaultPlayerSpeed": 10,
-    "defaultBulletMass": 20,
-    "defaultBulletSpeed": 30,
-    "gameWidth": 3000,
+    "massLossRate": 0.2,
+    "boostMassLossRate_1": 3,
+    "boostMassLossRate_2": 2,
+    "boostMassLossRate_3": 1,
+    "boostMassLossRate_4": 0.5,
+
+    "defaultPlayerMass": 100,
+    "defaultPlayerSpeed": 12,
+    "defaultBulletMass": 30,
+    "defaultBulletSpeed": 50,
+    "BackshotBulletMass":100,
+    "boostPlayerSpeed": 20,
+
+    "gameWidth": 5000,
     "gameHeight": 3000,
-    "gameMass": 20000,
+    "gameMass": 12000,
     "adminPass": "DEFAULT",
     "maxMacaron": 100,
-    "slowBase": 4.5
+    "eatPercentage": 0.3,
+    "explodeMass": 800
 }

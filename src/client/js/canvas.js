@@ -38,17 +38,20 @@ class Canvas {
 
     keyDown(event) {
         var key = event.which || event.keyCode;
-        if (key === global.KEY_W && this.parent.readyFire) {
+       
+        if ((key === global.KEY_W || key ===global.KEY_small_w )&& this.parent.readyFire) {
             this.parent.socket.emit('fireReverse');
             this.parent.readyFire = false;
         } else if (key === global.KEY_SPACE) this.parent.socket.emit('boost');
+        else if(key===global.KEY_S || key===global.KEY_small_s) this.parent.socket.emit('stop');
     }
 
     keyUp(event) {
         var key = event.which || event.keyCode;
-        if (key === global.KEY_W) {
+        if (key === global.KEY_W || key ===global.KEY_small_w ) {
             this.parent.readyFire = true;
         } else if (key === global.KEY_SPACE) this.parent.socket.emit('boostQuit');
+        else if(key===global.KEY_S || key===global.KEY_small_s) this.parent.socket.emit('stopQuit');
     }
 }
 

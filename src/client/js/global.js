@@ -1,8 +1,10 @@
 module.exports = {
     KEY_ENTER: 13,
     KEY_W: 119,
+    KEY_small_w: 87,
     KEY_SPACE: 32,
-
+    KEY_S:83,
+    KEY_small_s:115,
     // Keys and other mathematical constants
     borderDraw: false,
     spin: -Math.PI,
