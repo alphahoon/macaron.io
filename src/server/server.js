@@ -31,7 +31,8 @@ var C = SAT.Circle;
 app.use(express.static(__dirname + '/../client'));
 
 function addMacaron(num) {
-    var radius = util.massToRadius(config.macaronMass);
+    var mass = config.macaronMass + util.randomInRange(-10, 30);
+    var radius = util.massToRadius(mass);
     while (num--) {
         var position = util.uniformPosition(macaron, radius);
         macaron.push({
@@ -39,7 +40,7 @@ function addMacaron(num) {
             x: position.x,
             y: position.y,
             radius: radius,
-            mass: config.macaronMass,
+            mass: mass,
             hue: Math.round(Math.random() * 360)
         });
     }
@@ -98,28 +99,30 @@ function moveMass(mass) {
     var deltaX = mass.speed * Math.cos(deg);
 
     mass.speed -= 0.5;
-    if (mass.speed < 0) {
-        mass.speed = 0;
-    }
-    if (!isNaN(deltaY)) {
-        mass.y += deltaY;
-    }
-    if (!isNaN(deltaX)) {
-        mass.x += deltaX;
-    }
+    if (mass.speed < 0) mass.speed = 0;
+    if (!isNaN(deltaY)) mass.y += mass.y_reflected * deltaY;
+    if (!isNaN(deltaX)) mass.x += mass.x_reflected * deltaX;
 
     var borderCalc = mass.radius + 5;
     if (mass.x > config.gameWidth - borderCalc) {
+        // 오른쪽 벽
         mass.x = config.gameWidth - borderCalc;
+        mass.x_reflected *= -1;
     }
     if (mass.y > config.gameHeight - borderCalc) {
+        // 아래쪽 벽
         mass.y = config.gameHeight - borderCalc;
+        mass.y_reflected *= -1;
     }
     if (mass.x < borderCalc) {
+        // 왼쪽 벽
         mass.x = borderCalc;
+        mass.x_reflected *= -1;
     }
     if (mass.y < borderCalc) {
+        // 위쪽 벽
         mass.y = borderCalc;
+        mass.y_reflected *= -1;
     }
 }
 
@@ -164,7 +167,9 @@ io.on('connection', function(socket) {
         target: {
             x: 0,
             y: 0
-        }
+        },
+        born: new Date().getTime(),
+        boostOn: false
     };
 
     socket.on('gotit', function(player) {
@@ -186,6 +191,8 @@ io.on('connection', function(socket) {
         player.speed = speed;
         player.target.x = 0;
         player.target.y = 0;
+        player.born = new Date().getTime();
+        player.boostOn = false;
 
         currentPlayer = player;
         users.push(currentPlayer);
@@ -228,11 +235,11 @@ io.on('connection', function(socket) {
     });
 
     socket.on('fire', function() {
-        if (currentPlayer.mass >= config.defaultPlayerMass + config.defaultBulletMass) {
+        if (currentPlayer.mass >= config.defaultBulletMass) {
             var mass = config.defaultBulletMass;
             var radius = util.massToRadius(mass);
             var hue = Math.round(Math.random() * 360);
-            var speed = config.defaultBulletSpeed;
+            var speed = config.defaultBulletSpeed + currentPlayer.speed;
             currentPlayer.mass -= mass;
 
             firedMacaron.push({
@@ -246,18 +253,58 @@ io.on('connection', function(socket) {
                 target: {
                     x: currentPlayer.target.x,
                     y: currentPlayer.target.y
-                }
+                },
+                x_reflected: 1,
+                y_reflected: 1
             });
         }
+    });
+
+    socket.on('fireReverse', function() {
+        if (currentPlayer.mass >= config.defaultBulletMass) {
+            var mass = config.defaultBulletMass;
+            var radius = util.massToRadius(mass);
+            var hue = Math.round(Math.random() * 360);
+            currentPlayer.mass -= mass;
+
+            firedMacaron.push({
+                id: currentPlayer.id,
+                x: currentPlayer.x,
+                y: currentPlayer.y,
+                mass: mass,
+                radius: radius,
+                hue: hue,
+                speed: 40,
+                target: {
+                    x: -currentPlayer.target.x,
+                    y: -currentPlayer.target.y
+                },
+                x_reflected: 1,
+                y_reflected: 1
+            });
+        }
+    });
+
+    socket.on('boost', function() {
+        currentPlayer.boostOn = true;
+        currentPlayer.speed = config.boostPlayerSpeed;
+    });
+
+    socket.on('boostQuit', function() {
+        currentPlayer.boostOn = false;
+        currentPlayer.speed = config.defaultPlayerSpeed;
     });
 });
 
 function tickPlayer(currentPlayer) {
     movePlayer(currentPlayer);
 
-    if (currentPlayer.mass > 500) {
-        explode(currentPlayer);
-    }
+    var massLoss = config.massLossRate;
+    if (currentPlayer.boostOn) massLoss = config.boostMassLossRate;
+    currentPlayer.mass -= massLoss;
+
+    if (currentPlayer.mass < config.massLossRate) deadByStarving(currentPlayer);
+    if (currentPlayer.mass > config.explodeMass) explode(currentPlayer);
 
     function funcMacaron(f) {
         return SAT.pointInCircle(new V(f.x, f.y), playerCircle);
@@ -278,46 +325,12 @@ function tickPlayer(currentPlayer) {
         return false;
     }
 
-    function check(user) {
-        if (user.id !== currentPlayer.id) {
-            var response = new SAT.Response();
-            var collided = SAT.testCircleCircle(playerCircle,
-                new C(new V(user.x, user.y), user.radius),
-                response);
-            if (collided) {
-                response.aUser = currentPlayer;
-                response.bUser = {
-                    id: user.id,
-                    name: user.name,
-                    x: user.x,
-                    y: user.y,
-                    mass: user.mass,
-                    died: false
-                };
-                playerCollisions.push(response);
-            }
+    function funcEat(f) {
+        if (SAT.pointInCircle(new V(f.x, f.y), playerCircle)) {
+            if (f.id != currentPlayer.id && currentPlayer.mass > f.mass)
+                return true;
         }
-        return true;
-    }
-
-    function collisionCheck(collision) {
-        if (collision.aUser.mass > collision.bUser.mass * 1.0 && collision.aUser.radius > Math.sqrt(Math.pow(collision.aUser.x - collision.bUser.x, 2) + Math.pow(collision.aUser.y - collision.bUser.y, 2)) * 1.2) {
-            console.log('[DEBUG] Killing user: ' + collision.bUser.id);
-            console.log('[DEBUG] Collision info:');
-            console.log(collision);
-
-            var numUser = util.findIndex(users, collision.bUser.id);
-            if (numUser > -1) {
-                collision.bUser.died = true;
-                users.mass -= collision.bUser.mass;
-                users.splice(numUser, 1);
-                sockets[collision.bUser.id].emit('death');
-            }
-            if (!collision.bUser.died) {
-                currentPlayer.mass += collision.bUser.mass;
-                collision.aUser.mass += collision.bUser.mass;
-            }
-        }
+        return false;
     }
 
     var playerCircle = new C(
@@ -354,13 +367,18 @@ function tickPlayer(currentPlayer) {
     currentPlayer.radius = util.massToRadius(currentPlayer.mass);
     playerCircle.r = currentPlayer.radius;
 
-    tree.clear();
-    users.forEach(tree.put);
-    var playerCollisions = [];
+    var playerEaten = users.map(funcEat)
+        .reduce(function(a, b, c) { return b ? a.concat(c) : a; }, []);
 
-    var otherUsers = tree.get(currentPlayer, check);
+    var playerEatenMass = 0;
 
-    playerCollisions.forEach(collisionCheck);
+    for (var z = 0; z < playerEaten.length; z++) {
+        playerEatenMass += users[playerEaten[z]].mass;
+        users[playerEaten[z]].mass = 0;
+        deadByAbsorbing(users[playerEaten[z]]);
+    }
+
+    currentPlayer.mass += Math.floor(config.eatPercentage * playerEatenMass);
 }
 
 function moveloop() {
@@ -374,7 +392,7 @@ function moveloop() {
 
 function gameloop() {
     if (users.length > 0) {
-        users.sort(function(a, b) { return b.mass - a.mass; });
+        users.sort(function(a, b) { return a.born - b.born; });
 
         var topUsers = [];
 
@@ -382,7 +400,8 @@ function gameloop() {
             if (users[i].type == 'player') {
                 topUsers.push({
                     id: users[i].id,
-                    name: users[i].name
+                    name: users[i].name,
+                    born: users[i].born
                 });
             }
         }
@@ -402,14 +421,33 @@ function gameloop() {
     balanceMass();
 }
 
-function explode(user) {
+function deadByStarving(user) {
     var numUser = util.findIndex(users, user.id);
     user.died = true;
-    var numFrag = user.mass / config.defaultBulletMass;
+    users.splice(numUser, 1);
+    sockets[user.id].emit('deathStarve');
+}
+
+function deadByAbsorbing(user) {
+    var numUser = util.findIndex(users, user.id);
+    user.died = true;
+    users.splice(numUser, 1);
+    sockets[user.id].emit('deathAbsorb');
+}
+
+function deadByObesity(user) {
+    var numUser = util.findIndex(users, user.id);
+    user.died = true;
+    users.splice(numUser, 1);
+    sockets[user.id].emit('deathObesity');
+}
+
+function explode(user) {
+    var numUser = util.findIndex(users, user.id);
+    var numFrag = 5 + user.mass / config.defaultBulletMass;
     for (var i = 0; i < numFrag; i++) {
-        var mass = config.defaultBulletMass;
+        var mass = config.defaultBulletMass + util.randomInRange(-20, 10);
         var radius = util.massToRadius(mass);
-        var speed = config.defaultBulletSpeed;
         var hue = Math.round(Math.random() * 360);
         var x_direction = util.randomInRange(-1000, 1000);
         var y_direction = util.randomInRange(-1000, 1000);
@@ -422,15 +460,16 @@ function explode(user) {
             mass: mass,
             radius: radius,
             hue: hue,
-            speed: speed,
+            speed: 80,
             target: {
                 x: x_direction,
                 y: y_direction
-            }
+            },
+            x_reflected: 1,
+            y_reflected: 1
         });
     }
-    users.splice(numUser, 1);
-    sockets[user.id].emit('death');
+    deadByObesity(user);
 }
 
 function sendUpdates() {
@@ -500,7 +539,14 @@ function sendUpdates() {
     leaderboardChanged = false;
 }
 
-setInterval(moveloop, 1000 / 75);
+function getSurviveTime(time) {
+    var now = new Date().getTime();
+    var diff = (now - time) / 1000;
+    var sec = Math.floor(diff);
+    return sec;
+}
+
+setInterval(moveloop, 1000 / 60);
 setInterval(gameloop, 1000);
 setInterval(sendUpdates, 1000 / 40);
 

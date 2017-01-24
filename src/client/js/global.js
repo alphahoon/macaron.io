@@ -1,11 +1,13 @@
 module.exports = {
     KEY_ENTER: 13,
+    KEY_W: 119,
+    KEY_SPACE: 32,
 
     // Keys and other mathematical constants
     borderDraw: false,
     spin: -Math.PI,
     enemySpin: -Math.PI,
-    macaronSides: 30,
+    macaronSides: 20,
 
     // Canvas
     screenWidth: window.innerWidth,
@@ -21,6 +23,6 @@ module.exports = {
     continuity: false,
     startPingTime: 0,
     toggleMassState: 0,
-    backgroundColor: '#f2e1c3',
+    backgroundColor: '#F9F5E8',
     lineColor: '#000000',
 };

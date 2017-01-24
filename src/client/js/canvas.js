@@ -11,10 +11,10 @@ class Canvas {
         this.cv.width = global.screenWidth;
         this.cv.height = global.screenHeight;
         this.cv.addEventListener('mousemove', this.gameInput, false);
-        this.cv.addEventListener('mousedown', this.mousedown, false);
-        this.cv.addEventListener('mouseup', function() {
-            self.readyFire = true;
-        }, false);
+        this.cv.addEventListener('mousedown', this.mouseDown, false);
+        this.cv.addEventListener('mouseup', this.mouseUp, false);
+        this.cv.addEventListener('keydown', this.keyDown, false);
+        this.cv.addEventListener('keyup', this.keyUp, false);
         this.cv.parent = self;
         global.canvas = this;
     }
@@ -25,9 +25,30 @@ class Canvas {
         global.target = this.parent.target;
     }
 
-    mousedown(mouse) {
-        this.parent.socket.emit('fire');
-        this.parent.readyFire = false;
+    mouseDown(mouse) {
+        if (this.parent.readyFire) {
+            this.parent.socket.emit('fire');
+            this.parent.readyFire = false;
+        }
+    }
+
+    mouseUp(mouse) {
+        this.parent.readyFire = true;
+    }
+
+    keyDown(event) {
+        var key = event.which || event.keyCode;
+        if (key === global.KEY_W && this.parent.readyFire) {
+            this.parent.socket.emit('fireReverse');
+            this.parent.readyFire = false;
+        } else if (key === global.KEY_SPACE) this.parent.socket.emit('boost');
+    }
+
+    keyUp(event) {
+        var key = event.which || event.keyCode;
+        if (key === global.KEY_W) {
+            this.parent.readyFire = true;
+        } else if (key === global.KEY_SPACE) this.parent.socket.emit('boostQuit');
     }
 }
 
