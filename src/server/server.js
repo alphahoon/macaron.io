@@ -461,27 +461,28 @@ function gameloop() {
 }
 
 function deadByStarving(user) {
+    user.radius = 0;
     var numUser = util.findIndex(users, user.id);
-    user.died = true;
     if (!user.connected) users.splice(numUser, 1);
     sockets[user.id].emit('deathStarve');
 }
 
 function deadByAbsorbing(user) {
+    user.radius = 0;
     var numUser = util.findIndex(users, user.id);
-    user.died = true;
     if (!user.connected) users.splice(numUser, 1);
     sockets[user.id].emit('deathAbsorb');
 }
 
 function deadByObesity(user) {
+    user.radius = 0;
     var numUser = util.findIndex(users, user.id);
-    user.died = true;
     if (!user.connected) users.splice(numUser, 1);
     sockets[user.id].emit('deathObesity');
 }
 
 function explode(user) {
+    user.radius = 0;
     var numUser = util.findIndex(users, user.id);
     var numFrag = 5 + user.mass / config.defaultBulletMass;
     for (var i = 0; i < numFrag; i++) {
