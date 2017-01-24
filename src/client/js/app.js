@@ -12,11 +12,6 @@ var startHTML = "<div class=\"yumyum\"> <div class=\"macaron\"> <span class=\"co
     "<div id=\"instructions\"> <h3 align=\"middle\">게임하는 방법</h3><ul> <li>마카롱을 먹으면서 몸집을 키우세요!</li><li>너무 많은 마카롱을 먹으면 몸이 터져요!</li>" +
     "<li>자신보다 몸집이 큰 플레이어에게 잡아먹힐 수도 있어요!</li> <li>체중조절하면서 오래 살아남으세요!</li> </ul> </div> </div>";
 
-var debug = function(args) {
-    if (console && console.log) {
-        console.log(args);
-    }
-};
 
 function startGame(type) {
     if (!global.gameStart) {
@@ -25,7 +20,6 @@ function startGame(type) {
 
         global.screenWidth = window.innerWidth;
         global.screenHeight = window.innerHeight;
-
         document.getElementById('startMenuWrapper').style.maxHeight = '0px';
         document.getElementById('startMenuWrapper').innerHTML = '';
         document.getElementById('startMenuWrapper').style.opacity = 0.5;
@@ -39,18 +33,16 @@ function startGame(type) {
         if (!global.animLoopHandle)
             animloop();
 
-        console.log('RESPAWN EMITTED!');
         socket.emit('respawn');
         window.canvas.socket = socket;
         global.socket = socket;
-        debug('Game Start!');
     }
 }
 
 // Checks if the nick chosen contains valid alphanumeric characters (and underscores).
 function validNick() {
     var regex = /^[\s0-9a-zA-Zㄱ-ㅎㅏ-ㅣ가-힣]*$/;
-    debug('Regex Test', regex.exec(playerNameInput.value));
+
     return regex.exec(playerNameInput.value) !== null;
 }
 
@@ -127,13 +119,13 @@ function setupSocket(socket) {
     socket.on('connect_failed', function() {
         socket.close();
         global.disconnected = true;
-        debug('Connect Failed!');
+
     });
 
     socket.on('disconnect', function() {
         socket.close();
         global.disconnected = true;
-        debug('Disconnected!');
+
     });
 
     // Handle connection.
@@ -144,9 +136,10 @@ function setupSocket(socket) {
         player.screenHeight = global.screenHeight;
         player.target = window.canvas.target;
         global.player = player;
-        console.log('WELCOME: global.player');
-        console.log(global.player);
+
         socket.emit('gotit', player);
+
+
         c.focus();
     });
 
@@ -155,7 +148,7 @@ function setupSocket(socket) {
         global.gameHeight = data.gameHeight;
         global.gameStart = true;
         resize();
-        debug('Game Setup');
+
     });
 
     socket.on('leaderboard', function(data) {
@@ -490,7 +483,8 @@ window.addEventListener('resize', resize);
 
 function resize() {
     if (!socket) return;
-    player.screenWidth = c.width = global.screenWidth = window.innerWidth;
-    player.screenHeight = c.height = global.screenHeight = window.innerHeight;
+    player.screenWidth = c.width = global.screenWidth; //= window.innerWidth;
+    player.screenHeight = c.height = global.screenHeight; //= window.innerHeight;
     socket.emit('windowResized', { screenWidth: global.screenWidth, screenHeight: global.screenHeight });
+    console.log("RESIZE!!!!");
 }
