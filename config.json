@@ -1,7 +1,7 @@
 {
     "port": 3000,
     "macaronMass": 20,
-    "massLossRate": 0.2,
+    "massLossRate": 0.3,
     "boostMassLossRate_1": 3,
     "boostMassLossRate_2": 2,
     "boostMassLossRate_3": 1,
@@ -19,6 +19,6 @@
     "gameMass": 12000,
     "adminPass": "DEFAULT",
     "maxMacaron": 100,
-    "eatPercentage": 0.3,
-    "explodeMass": 800
+    "eatPercentage": 0.4,
+    "explodeMass": 1000
 }

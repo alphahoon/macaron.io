@@ -3,8 +3,8 @@ module.exports = {
     KEY_W: 119,
     KEY_small_w: 87,
     KEY_SPACE: 32,
-    KEY_S:83,
-    KEY_small_s:115,
+    KEY_S:81,
+    KEY_small_s:113,
     // Keys and other mathematical constants
     borderDraw: false,
     spin: -Math.PI,
