@@ -157,19 +157,8 @@ io.on('connection', function(socket) {
     var currentPlayer = {
         id: socket.id,
         type: type,
-        died: false,
-        x: position.x,
-        y: position.y,
-        mass: mass,
-        radius: radius,
-        hue: hue,
-        speed: speed,
-        target: {
-            x: 0,
-            y: 0
-        },
-        born: new Date().getTime(),
-        boostOn: false
+        connected: true,
+        died: false
     };
 
     socket.on('gotit', function(player) {
@@ -195,7 +184,13 @@ io.on('connection', function(socket) {
         player.boostOn = false;
 
         currentPlayer = player;
-        users.push(currentPlayer);
+
+        var userNum = util.findIndex(users, currentPlayer.id);
+        if (userNum > -1) {
+            users[userNum] = currentPlayer;
+        } else {
+            users.push(currentPlayer);
+        }
 
         console.log('GOTIT: currentPlayer = ');
         console.log(currentPlayer);
@@ -215,13 +210,24 @@ io.on('connection', function(socket) {
     });
 
     socket.on('respawn', function() {
-        if (util.findIndex(users, currentPlayer.id) > -1)
-            users.splice(util.findIndex(users, currentPlayer.id), 1);
-        socket.emit('welcome', currentPlayer);
-        console.log('[INFO] User ' + currentPlayer.name + ' respawned!');
+        var userNum = util.findIndex(users, currentPlayer.id);
+        if (userNum > -1) {
+            if (currentPlayer.connected) {
+                currentPlayer.died = true;
+                socket.emit('welcome', currentPlayer);
+                console.log('[INFO] User ' + currentPlayer.name + ' respawned!');
+            } else {
+                currentPlayer.died = true;
+                users.splice(userNum, 1);
+                console.log('[INFO] User ' + currentPlayer.name + ' deleted!');
+            }
+        } else {
+            socket.emit('welcome', currentPlayer);
+        }
     });
 
     socket.on('disconnect', function() {
+        currentPlayer.connected = false;
         if (util.findIndex(users, currentPlayer.id) > -1)
             users.splice(util.findIndex(users, currentPlayer.id), 1);
         console.log('[INFO] User ' + currentPlayer.name + ' disconnected!');
@@ -303,32 +309,38 @@ io.on('connection', function(socket) {
     socket.on('stopQuit', function() {
         currentPlayer.stopQuit = true;
         currentPlayer.speed = config.defaultPlayerSpeed;
-    });    
+    });
 
 
 });
 
- 
+
 function tickPlayer(currentPlayer) {
     movePlayer(currentPlayer);
 
     var massLoss = config.massLossRate;
-    if (currentPlayer.boostOn){
-        if(currentPlayer.mass>=600)
+    if (currentPlayer.boostOn) {
+        if (currentPlayer.mass >= 600)
             massLoss = config.boostMassLossRate_1;
-        else if(currentPlayer.mass>=400 && currentPlayer.mass <600)
+        else if (currentPlayer.mass >= 400 && currentPlayer.mass < 600)
             massLoss = config.boostMassLossRate_2;
-        else if(currentPlayer.mass >=200 && currentPlayer.mass <400)
+        else if (currentPlayer.mass >= 200 && currentPlayer.mass < 400)
             massLoss = config.boostMassLossRate_3;
-        else if(currentPlayer.mass >=100 && currentPlayer.mass <200)
+        else if (currentPlayer.mass >= 100 && currentPlayer.mass < 200)
             massLoss = config.boostMassLossRate_4;
     }
 
 
     currentPlayer.mass -= massLoss;
 
-    if (currentPlayer.mass < config.massLossRate) deadByStarving(currentPlayer);
-    if (currentPlayer.mass > config.explodeMass) explode(currentPlayer);
+    if (currentPlayer.mass < config.massLossRate && !currentPlayer.died) {
+        currentPlayer.died = true;
+        deadByStarving(currentPlayer);
+    }
+    if (currentPlayer.mass > config.explodeMass && !currentPlayer.died) {
+        currentPlayer.died = true;
+        explode(currentPlayer);
+    }
 
     function funcMacaron(f) {
         return SAT.pointInCircle(new V(f.x, f.y), playerCircle);
@@ -341,7 +353,7 @@ function tickPlayer(currentPlayer) {
 
     function funcBullet(m) {
         if (SAT.pointInCircle(new V(m.x, m.y), playerCircle)) {
-            if (m.id == currentPlayer.id && m.speed > config.defaultBulletSpeed*0.7)
+            if (m.id == currentPlayer.id && m.speed > config.defaultBulletSpeed * 0.7)
                 return false;
             if (currentPlayer.mass >= m.mass * 1.0)
                 return true;
@@ -351,7 +363,7 @@ function tickPlayer(currentPlayer) {
 
     function funcEat(f) {
         if (SAT.pointInCircle(new V(f.x, f.y), playerCircle)) {
-            if (f.id != currentPlayer.id && currentPlayer.mass > f.mass)
+            if (f.id != currentPlayer.id && currentPlayer.mass > f.mass && !currentPlayer.died)
                 return true;
         }
         return false;
@@ -394,12 +406,13 @@ function tickPlayer(currentPlayer) {
     var playerEaten = users.map(funcEat)
         .reduce(function(a, b, c) { return b ? a.concat(c) : a; }, []);
 
-    var playerEatenMass = 0;
-
     for (var z = 0; z < playerEaten.length; z++) {
-        playerEatenMass += users[playerEaten[z]].mass;
-        users[playerEaten[z]].mass = 0;
-        deadByAbsorbing(users[playerEaten[z]]);
+        if (!users[playerEaten[z]].died) {
+            playerEatenMass += users[playerEaten[z]].mass;
+            users[playerEaten[z]].mass = 0;
+            users[playerEaten[z]].died = true;
+            deadByAbsorbing(users[playerEaten[z]]);
+        }
     }
 
     currentPlayer.mass += Math.floor(config.eatPercentage * playerEatenMass);
@@ -448,21 +461,21 @@ function gameloop() {
 function deadByStarving(user) {
     var numUser = util.findIndex(users, user.id);
     user.died = true;
-    users.splice(numUser, 1);
+    if (!user.connected) users.splice(numUser, 1);
     sockets[user.id].emit('deathStarve');
 }
 
 function deadByAbsorbing(user) {
     var numUser = util.findIndex(users, user.id);
     user.died = true;
-    users.splice(numUser, 1);
+    if (!user.connected) users.splice(numUser, 1);
     sockets[user.id].emit('deathAbsorb');
 }
 
 function deadByObesity(user) {
     var numUser = util.findIndex(users, user.id);
     user.died = true;
-    users.splice(numUser, 1);
+    if (!user.connected) users.splice(numUser, 1);
     sockets[user.id].emit('deathObesity');
 }
 

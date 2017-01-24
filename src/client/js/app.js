@@ -13,36 +13,36 @@ var startHTML = "<div class=\"yumyum\"> <div class=\"macaron\"> <span class=\"co
     "<li>자신보다 몸집이 큰 플레이어에게 잡아먹힐 수도 있어요!</li> <li>체중조절하면서 오래 살아남으세요!</li> </ul> </div> </div>";
 
 
-
 function startGame(type) {
-    global.playerName = playerNameInput.value.replace(/(<([^>]+)>)/ig, '').substring(0, 25);
-    global.playerType = type;
+    if (!global.gameStart) {
+        global.playerName = playerNameInput.value.replace(/(<([^>]+)>)/ig, '').substring(0, 25);
+        global.playerType = type;
 
-    global.screenWidth = window.innerWidth;
-    global.screenHeight = window.innerHeight;
-    document.getElementById('startMenuWrapper').style.maxHeight = '0px';
-    document.getElementById('startMenuWrapper').innerHTML = '';
-    document.getElementById('startMenuWrapper').style.opacity = 0.5;
-    document.getElementById('gameAreaWrapper').style.opacity = 1;
+        global.screenWidth = window.innerWidth;
+        global.screenHeight = window.innerHeight;
+        document.getElementById('startMenuWrapper').style.maxHeight = '0px';
+        document.getElementById('startMenuWrapper').innerHTML = '';
+        document.getElementById('startMenuWrapper').style.opacity = 0.5;
+        document.getElementById('gameAreaWrapper').style.opacity = 1;
 
-    if (!socket) {
-        socket = io({ query: "type=" + type });
-        setupSocket(socket);
+        if (!socket) {
+            socket = io({ query: "type=" + type });
+            setupSocket(socket);
+        }
+
+        if (!global.animLoopHandle)
+            animloop();
+
+        socket.emit('respawn');
+        window.canvas.socket = socket;
+        global.socket = socket;
     }
-
-    if (!global.animLoopHandle)
-        animloop();
-
-    socket.emit('respawn');
-    window.canvas.socket = socket;
-    global.socket = socket;
-    
 }
 
 // Checks if the nick chosen contains valid alphanumeric characters (and underscores).
 function validNick() {
     var regex = /^[\s0-9a-zA-Zㄱ-ㅎㅏ-ㅣ가-힣]*$/;
-    
+
     return regex.exec(playerNameInput.value) !== null;
 }
 
@@ -119,13 +119,13 @@ function setupSocket(socket) {
     socket.on('connect_failed', function() {
         socket.close();
         global.disconnected = true;
-       
+
     });
 
     socket.on('disconnect', function() {
         socket.close();
         global.disconnected = true;
-       
+
     });
 
     // Handle connection.
@@ -136,18 +136,19 @@ function setupSocket(socket) {
         player.screenHeight = global.screenHeight;
         player.target = window.canvas.target;
         global.player = player;
-       
+
         socket.emit('gotit', player);
-        global.gameStart = true;
-        
+
+
         c.focus();
     });
 
     socket.on('gameSetup', function(data) {
         global.gameWidth = data.gameWidth;
         global.gameHeight = data.gameHeight;
+        global.gameStart = true;
         resize();
-      
+
     });
 
     socket.on('leaderboard', function(data) {
@@ -182,15 +183,24 @@ function setupSocket(socket) {
             }
         }
         if (global.playerType == 'player') {
-            var xoffset = player.x - playerData.x;
-            var yoffset = player.y - playerData.y;
+            if (typeof(playerData) == "undefined") {
+                player.x = 0;
+                player.y = 0;
+                player.hue = 0;
+                player.mass = 0;
+                player.xoffset = 0;
+                player.yoffset = 0;
+            } else {
+                var xoffset = player.x - playerData.x;
+                var yoffset = player.y - playerData.y;
 
-            player.x = playerData.x;
-            player.y = playerData.y;
-            player.hue = playerData.hue;
-            player.mass = playerData.mass;
-            player.xoffset = isNaN(xoffset) ? 0 : xoffset;
-            player.yoffset = isNaN(yoffset) ? 0 : yoffset;
+                player.x = playerData.x;
+                player.y = playerData.y;
+                player.hue = playerData.hue;
+                player.mass = playerData.mass;
+                player.xoffset = isNaN(xoffset) ? 0 : xoffset;
+                player.yoffset = isNaN(yoffset) ? 0 : yoffset;
+            }
         }
 
         users = visiblePlayer;
@@ -199,60 +209,42 @@ function setupSocket(socket) {
     });
 
     socket.on('deathStarve', function() {
-        global.gameStart = false;
-        global.died = true;
-        global.reason = 1;
-        window.setTimeout(function() {
-            document.getElementById('gameAreaWrapper').style.opacity = 0;
-            document.getElementById('startMenuWrapper').style.opacity = 1;
-            document.getElementById('startMenuWrapper').innerHTML = startHTML;
-            document.getElementById('startMenuWrapper').style.maxHeight = '1000px';
-            playerNameInput = document.getElementById('playerNameInput');
-            window.onload();
-            global.died = false;
-            if (global.animLoopHandle) {
-                window.cancelAnimationFrame(global.animLoopHandle);
-                global.animLoopHandle = undefined;
-            }
-        }, 2500);
+        console.log('DEATH STARVE!');
+        if (!global.died) {
+            global.gameStart = false;
+            global.died = true;
+            global.reason = 1;
+            window.setTimeout(function() {
+                global.died = false;
+                startGame('player');
+            }, 2500);
+        }
     });
 
     socket.on('deathObesity', function() {
-        global.gameStart = false;
-        global.died = true;
-        global.reason = 2;
-        window.setTimeout(function() {
-            document.getElementById('gameAreaWrapper').style.opacity = 0;
-            document.getElementById('startMenuWrapper').style.opacity = 1;
-            document.getElementById('startMenuWrapper').innerHTML = startHTML;
-            document.getElementById('startMenuWrapper').style.maxHeight = '1000px';
-            playerNameInput = document.getElementById('playerNameInput');
-            window.onload();
-            global.died = false;
-            if (global.animLoopHandle) {
-                window.cancelAnimationFrame(global.animLoopHandle);
-                global.animLoopHandle = undefined;
-            }
-        }, 2500);
+        console.log('DEATH OBESITY!');
+        if (!global.died) {
+            global.gameStart = false;
+            global.died = true;
+            global.reason = 2;
+            window.setTimeout(function() {
+                global.died = false;
+                startGame('player');
+            }, 2500);
+        }
     });
 
     socket.on('deathAbsorb', function() {
-        global.gameStart = false;
-        global.died = true;
-        global.reason = 3;
-        window.setTimeout(function() {
-            document.getElementById('gameAreaWrapper').style.opacity = 0;
-            document.getElementById('startMenuWrapper').style.opacity = 1;
-            document.getElementById('startMenuWrapper').innerHTML = startHTML;
-            document.getElementById('startMenuWrapper').style.maxHeight = '1000px';
-            playerNameInput = document.getElementById('playerNameInput');
-            window.onload();
-            global.died = false;
-            if (global.animLoopHandle) {
-                window.cancelAnimationFrame(global.animLoopHandle);
-                global.animLoopHandle = undefined;
-            }
-        }, 2500);
+        console.log('DEATH ABSORB!');
+        if (!global.died) {
+            global.gameStart = false;
+            global.died = true;
+            global.reason = 3;
+            window.setTimeout(function() {
+                global.died = false;
+                startGame('player');
+            }, 2500);
+        }
     });
 }
 
@@ -317,7 +309,7 @@ function drawPlayers(order) {
 
     for (var z = 0; z < order.length; z++) {
         var currentPlayer = users[order[z].num];
-       
+
         var x = 0,
             y = 0;
         var points = 30 + ~~(currentPlayer.mass / 10);
@@ -439,7 +431,7 @@ function animloop() {
 }
 
 function gameLoop() {
-    if (global.died) {
+    if (global.died && !global.disconnected) {
         graph.fillStyle = '#333333';
         graph.fillRect(0, 0, global.screenWidth, global.screenHeight);
 
