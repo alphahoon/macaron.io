@@ -20,5 +20,5 @@
     "adminPass": "DEFAULT",
     "maxMacaron": 100,
     "eatPercentage": 0.4,
-    "explodeMass": 1000
+    "explodeMass": 900
 }
