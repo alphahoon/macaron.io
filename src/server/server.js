@@ -158,7 +158,7 @@ io.on('connection', function(socket) {
         id: socket.id,
         type: type,
         connected: true,
-        died: false
+        died: true
     };
 
     socket.on('gotit', function(player) {
@@ -171,6 +171,7 @@ io.on('connection', function(socket) {
         var hue = Math.round(Math.random() * 360);
         var speed = config.defaultPlayerSpeed;
 
+        player.connected = true;
         player.died = false;
         player.x = position.x;
         player.y = position.y;
@@ -186,14 +187,14 @@ io.on('connection', function(socket) {
         currentPlayer = player;
 
         var userNum = util.findIndex(users, currentPlayer.id);
+        console.log('GOTIT!');
         if (userNum > -1) {
+            console.log('userNum : ' + userNum);
             users[userNum] = currentPlayer;
         } else {
+            console.log('XXX');
             users.push(currentPlayer);
         }
-
-        console.log('GOTIT: currentPlayer = ');
-        console.log(currentPlayer);
 
         io.emit('playerJoin', { name: currentPlayer.name });
 
@@ -267,8 +268,8 @@ io.on('connection', function(socket) {
     });
 
     socket.on('fireReverse', function() {
-        if (currentPlayer.mass >= config.BackshotBulletMass) {
-            var mass = config.BackshotBulletMass;
+        if (currentPlayer.mass >= config.defaultBulletMass) {
+            var mass = config.defaultBulletMass;
             var radius = util.massToRadius(mass);
             var hue = Math.round(Math.random() * 360);
             currentPlayer.mass -= mass;
@@ -300,37 +301,13 @@ io.on('connection', function(socket) {
         currentPlayer.boostOn = false;
         currentPlayer.speed = config.defaultPlayerSpeed;
     });
-
-    socket.on('stop', function() {
-        currentPlayer.stop = true;
-        currentPlayer.speed = 0;
-    });
-
-    socket.on('stopQuit', function() {
-        currentPlayer.stopQuit = true;
-        currentPlayer.speed = config.defaultPlayerSpeed;
-    });
-
-
 });
-
 
 function tickPlayer(currentPlayer) {
     movePlayer(currentPlayer);
 
     var massLoss = config.massLossRate;
-    if (currentPlayer.boostOn) {
-        if (currentPlayer.mass >= 600)
-            massLoss = config.boostMassLossRate_1;
-        else if (currentPlayer.mass >= 400 && currentPlayer.mass < 600)
-            massLoss = config.boostMassLossRate_2;
-        else if (currentPlayer.mass >= 200 && currentPlayer.mass < 400)
-            massLoss = config.boostMassLossRate_3;
-        else if (currentPlayer.mass >= 100 && currentPlayer.mass < 200)
-            massLoss = config.boostMassLossRate_4;
-    }
-
-
+    if (currentPlayer.boostOn) massLoss = config.boostMassLossRate;
     currentPlayer.mass -= massLoss;
 
     if (currentPlayer.mass < config.massLossRate && !currentPlayer.died) {
@@ -353,7 +330,7 @@ function tickPlayer(currentPlayer) {
 
     function funcBullet(m) {
         if (SAT.pointInCircle(new V(m.x, m.y), playerCircle)) {
-            if (m.id == currentPlayer.id && m.speed > config.defaultBulletSpeed * 0.7)
+            if (m.id == currentPlayer.id && m.speed > 0)
                 return false;
             if (currentPlayer.mass >= m.mass * 1.0)
                 return true;
