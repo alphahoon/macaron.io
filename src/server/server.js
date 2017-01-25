@@ -339,6 +339,7 @@ function tickPlayer(currentPlayer) {
     }
     if (currentPlayer.mass > config.explodeMass && !currentPlayer.died) {
         currentPlayer.died = true;
+        currentPlayer.radius = 0;
         explode(currentPlayer);
     }
 
